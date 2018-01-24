@@ -1,0 +1,268 @@
+//CREATE COLLECTION
+
+> db.createCollection('otherThings');
+
+// FORLOOP
+
+> for (var i=0;i<20;i++){ db.things.insert({x:i}); }
+
+// VIEW ALL
+
+> db.things.find();
+
+// SELECT ONLY WHAT I SAID
+
+> db.things.find({$or: [{x:2},{x:4}]});
+
+// BIGGER THAN WHAT I SAID
+
+> db.things.find({x:{$gt:10}});
+
+// FIND all things where x equals 2 or biggen than 6
+
+> db.things.find({$or: [{x:2},{x:{$gt:6}}]});
+
+// BETWEEN NUMBERS
+
+> db.things.find({$and: [{x:{$gt:15}},{x:{$lt: 18}}]});
+
+// task: find all things that are between 0 and 5 or beteenw 15 and 20
+
+> db.things.find({$or: [{$and:[{x:{$gt:0}},{x:{$lt:5}}]},{$and:[{x:{$gt:15}},{x:{$lt:20}}]}]});
+
+// FIRST result that meets criteria
+
+> db.things.findOne();
+db.things.findOne().limit(1);
+
+// CHECK all the items in things
+
+> db.things.find().forEach(function(e){ print("x is: " + e.x); });
+
+// CHECK all GT 10
+
+> db.things.find({x: {$gt:10}}).forEach(function(e){ print("x is: " + e.x); });
+
+// COPY stuff to another collection
+
+> db.things.find({x: {$gt:10}}).forEach(function(e){ db.otherThings.insert(e); });
+
+// DELETE
+
+> db.things.remove(); 
+
+// task: first, google MongoDB $mod operator, create a new collection 'evenNumbers'
+// copy all documents from things collection to evenNumbers collection where x is
+// divisible by 2.
+// db.inventory.find( { x: { $mod: [ 2, 0 ] } } );
+
+> db.createCollection('evenNumbers');
+> db.things.find({x: {$mod: [2,0]}}).forEach(function(e){ db.evenNumbers.insert(e); });
+
+
+// task: 1 show all students whose name its sandra or katja
+//       2 name is sandra or age > 25
+         3 all studients that have arabic
+         4 all students who are between 25 and 30 and with history
+         5 all students who are enrrolled in math and not in sport
+
+1. db.students.find({$or: [{name:'sandra'},{name:'katja'}]}).pretty();
+2. db.students.find({$or: [{name:'sandra'},{age:{$gt:25}}]}).pretty();
+3. db.students.find({subjects:'arabic'}).pretty();
+4. db.students.find({$and: [{$and: [{age:{$gt:25}},{age:{$lt: 30}}]},{subjects:'history'}]}).pretty();
+5. db.students.find({$and: [{subjects:'math'},{ subjects: { $ne: 'sport' } }]}).pretty();
+
+
+// GET THE SAME GUYS
+
+> db.students.aggregate([{$group: {_id: '$gender'}}]);
+{ "_id" : "female" }
+{ "_id" : "male" }
+
+// $SUM = sum the results
+
+> db.students.aggregate([{$group: {_id: '$gender', result: {$sum: 1}}}]);
+{ "_id" : "female", "result" : 5 }
+{ "_id" : "male", "result" : 3 }
+
+// $MAX= max of the results
+
+> db.students.aggregate([{$group: {_id: '$gender', result: {$max: '$age'}}}]);
+{ "_id" : "female", "result" : 31 }
+{ "_id" : "male", "result" : 31 }
+
+
+// $MIN = min of the results
+
+> db.students.aggregate([{$group: {_id: '$gender', result: {$min: '$age'}}}]);
+{ "_id" : "female", "result" : 25 }
+{ "_id" : "male", "result" : 20 }
+
+
+// task: 1 find avg per gender
+//       2 find the avg in total
+// { $avg: <expression> }
+// { $group: { _id: <expression>, <field1>: { <accumulator1> : <expression1> }, ... } }
+
+1. db.students.aggregate([{$group: {_id: '$gender', result: {$avg: '$age'}}}]);
+2. db.students.aggregate([{$group: {_id: 'avg age', result: {$avg: '$age'}}}]);
+
+
+// NEST ORDERS
+
+> db.foos.insert({x:2, y:{z:1}});
+> db.foos.find().pretty();
+
+{ "_id" : ObjectId("5a671385f45e3ca517c06213"), "x" : 1 }
+{
+  "_id" : ObjectId("5a6713baf45e3ca517c06214"),
+  "x" : 2,
+  "y" : {
+    "z" : 1
+  }
+}
+
+> db.foos.insert({x:3,y:{z:1,b:5}});
+WriteResult({ "nInserted" : 1 })
+> db.foos.find().pretty();
+{ "_id" : ObjectId("5a671385f45e3ca517c06213"), "x" : 1 }
+{
+  "_id" : ObjectId("5a6713baf45e3ca517c06214"),
+  "x" : 2,
+  "y" : {
+    "z" : 1
+  }
+}
+{
+  "_id" : ObjectId("5a671440f45e3ca517c06215"),
+  "x" : 3,
+  "y" : {
+    "z" : 1,
+    "b" : 5
+  }
+}
+
+// only get the exactcly match
+> db.foos.find({y:{z:1}}).pretty();
+{
+  "_id" : ObjectId("5a6713baf45e3ca517c06214"),
+  "x" : 2,
+  "y" : {
+    "z" : 1
+  }
+}
+ // find aprox results
+
+ > db.foos.find({'y.z':1}).pretty();
+ {
+  "_id" : ObjectId("5a6713baf45e3ca517c06214"),
+  "x" : 2,
+  "y" : {
+    "z" : 1
+  }
+ }
+ {
+  "_id" : ObjectId("5a671440f45e3ca517c06215"),
+  "x" : 3,
+  "y" : {
+    "z" : 1,
+    "b" : 5
+  }
+ }
+
+ // regular expresions
+
+ > db.createCollection('someLetters');
+ { "ok" : 1 }
+ > db.someLetters.insert([
+ ... {str: 'AA'},
+ ... {str: 'AB'},
+ ... {str: 'CC'},
+ ... {str: 'CE'}
+ ... ]);
+
+FIND A DONT MIND POS OF A
+
+> db.someLetters.find({str: /A/});
+
+START WITH A
+
+> db.someLetters.find({str: /^A/});
+
+NO CHARATER BEFORE A OR AFTER
+
+> db.someLetters.find({str: /^A$/});
+
+db.customers.insert([
+{
+  firstname:'anton',
+  lastname:'meier',
+  birthdate: new Date("1989-04-02"),
+  address: {
+      street: 'Haupstr. 1',
+      postal: '13305',
+      city:'Berlin'
+  },
+  orders: [
+  {sum: 120, created: new Date("2018-01-04")},
+  {sum: 140, created: new Date("2018-01-07")}
+  ]
+},
+{
+  firstname:'julia',
+  lastname:'mueller',
+  birthdate: new Date("1972-08-02"),
+  address: {
+      street: 'Schillerstr. 5',
+      postal: '1205',
+      city:'Osnabrueck'
+  },
+  orders: [
+  {sum: 50, created: new Date("2018-01-04")},
+  {sum: 70, created: new Date("2018-01-07")},
+  {sum: 90, created: new Date("2018-01-10")}
+  ]
+},
+{
+  firstname:'gert',
+  lastname:'hamilkov',
+  birthdate: new Date("1985-05-12"),
+  address: {
+      street: 'Schillerstr. 15',
+      postal: '13305',
+      city:'Berlin'
+  },
+  orders: [
+  {sum: 40, created: new Date("2018-01-04")},
+  {sum: 5, created: new Date("2018-01-07")},
+  {sum: 10, created: new Date("2018-01-07")}
+  ]
+}
+]);
+
+// task: 1. get all customers who have a 33 in their postal
+//       2. get all customers who live in Schillerstr.
+//       3. anton gets an additional address. everything stays the same except his street
+//       3a.he has got a second apartment at haupstrasse 4. update his address to be an array
+//          instead of a single object 
+//       3b.add his second apartment at haupstrasse 4 into that array
+//
+// { $set: { <field1>: <value1>, ... } }
+
+
+1. > db.customers.find({'address.postal': /33/}).pretty();
+2. > db.customers.find({'address.street': /Schillerstr/}).pretty();
+3. > db.customers.update({ firstname: 'anton' },{$set: {address:[{
+    "street" : "Haupstr. 1",
+    "postal" : "13305",
+    "city" : "Berlin"
+},
+{
+    "street" : "Haupstr. 4",
+        "postal" : "13305",
+        "city" : "Berlin"
+}]
+});
+
+
+

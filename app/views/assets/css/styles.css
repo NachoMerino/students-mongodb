@@ -1,0 +1,13 @@
+body{
+  background-color: lightblue;
+}
+.students{
+  background-color: lightgray;
+  width: 90%;
+  margin: 0 auto;
+}
+.table{
+  width: 95%;
+  margin:  0 auto;
+}
+
