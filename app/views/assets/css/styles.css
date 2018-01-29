@@ -1,3 +1,15 @@
-body{
+body {
   background-color: lightblue;
+}
+
+#searchStudent {
+  margin-right: 0.5em;
+}
+
+form {
+  margin: 0;
+}
+
+.modal-body input{
+  margin: 1em 0;
 }

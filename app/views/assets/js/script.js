@@ -1,28 +1,11 @@
 $().ready(() => {
   const server = 'http://localhost:3000';
-
-  $('main').css(('margin-top'), $('.navbar').outerHeight());
-
-  // all functions
-  function renderSubjects(subjectsArray, button) {
-    let subjects = '';
-    // show subjects as a button or no
-    if (button) {
-      subjectsArray.forEach((subject) => {
-        subjects += `<button type = "button" class = "btn btn-outline-info" >${subject}</button>   `;
-      });
-      return subjects;
-    } else {
-      subjectsArray.forEach((subject, index) => {
-        if (index !== subjectsArray.length - 1) {
-          subjects += `${subject},`;
-        } else {
-          subjects += `${subject}`;
-        }
-      });
-      return subjects;
-    }
-  }
+  const $searchStudent = $('#searchStudent');
+  const $main = $('main');
+  const $table = $('.table');
+  let checkGender;
+  $main.css(('margin-top'), $('.navbar').outerHeight());
+  $searchStudent.hide();
 
   const mkThead = `<thead class="thead-dark">
                           <tr>
@@ -36,6 +19,31 @@ $().ready(() => {
                           </tr>
                         </thead>
                         <tbody>`;
+
+  // all functions
+  function renderSubjects(subjectsArray, button) {
+    let subjects = '';
+    // show subjects as a button or no
+    if (button) {
+      subjectsArray.forEach((subject) => {
+        subjects += `<button type = "button" id="${subject}" class ="btn btn-outline-info" >${subject}</button>   `;
+      });
+      return subjects;
+    } else {
+      subjectsArray.forEach((subject, index) => {
+        if (index !== subjectsArray.length - 1) {
+          if (subject !== '') {
+            subjects += `${subject},`;
+          }
+        } else {
+          if (subject !== '') {
+            subjects += `${subject}`;
+          }
+        }
+      });
+      return subjects;
+    }
+  }
 
   function mkTbody(student, index) {
     return $(`<tr id="${student._id}">
@@ -61,13 +69,15 @@ $().ready(() => {
           <form>
             <input type="text" id="name" class="form-control" placeholder="Name" required>
             <input type="number" id="age" class="form-control" placeholder="Age" required>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="inlineRadioOptions" id="male" value="male" checked="checked">
-              <label class="form-check-label" for="male">Male</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="inlineRadioOptions" id="female" value="female">
-              <label class="form-check-label" for="female">Female</label>
+            <div id="gendersContainer">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="male" value="male">
+                <label class="form-check-label" for="male">Male</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="inlineRadioOptions" id="female" value="female">
+                <label class="form-check-label" for="female">Female</label>
+              </div>
             </div>
             <input type="text" id="street" class="form-control" placeholder="Street" required>
             <input type="text" id="city" class="form-control" placeholder="City" required>
@@ -76,7 +86,7 @@ $().ready(() => {
             <div class="form-group row">
               <div class="col-sm-10 form-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-primary">Save</button>
               </div>
             </div>
           </form>
@@ -85,19 +95,31 @@ $().ready(() => {
         </div>`);
   }
 
+  function loadError(message) {
+    $table
+      .empty()
+      .append(`<div class="alert alert-danger" role="alert">
+                ${message}
+                </div>`);
+  }
+
   function loadFreshData() {
     $.ajax(`${server}/api/students`, {
         method: 'GET',
         contentType: 'application/json',
       })
       .done((data) => {
-        $('.table').empty().append(mkThead);
-        data.forEach((student, index) => {
-          $('.table').append(mkTbody(student, index));
-        });
+        if (!data.error) {
+          $table.empty().append(mkThead);
+          data.forEach((student, index) => {
+            $table.append(mkTbody(student, index));
+          });
+        } else {
+          loadError(data.error);
+        }
       })
       .fail((data) => {
-        console.log('error');
+        loadError(data.error);
       });
   }
 
@@ -108,11 +130,14 @@ $().ready(() => {
         contentType: 'application/json',
       })
       .done((data) => {
-        loadFreshData(server);
-        console.log(data.message);
+        if (!data.error) {
+          loadFreshData(server);
+        } else {
+          loadError(data.error);
+        }
       })
       .fail((data) => {
-        console.log('error from server');
+        loadError(data.error);
       });
   }
 
@@ -123,15 +148,21 @@ $().ready(() => {
         contentType: 'application/json',
       })
       .done((data) => {
-        $('#name').val(data.name);
-        $('#age').val(data.age);
-        $('#street').val(data.address.street);
-        $('#city').val(data.address.city);
-        $('#postal').val(data.address.postal);
-        $('#subjects').val(renderSubjects(data.subjects));
+        if (!data.error) {
+          $('#name').val(data.name);
+          $('#age').val(data.age);
+          $('#street').val(data.address.street);
+          $('#city').val(data.address.city);
+          $(`#${data.gender}`).removeAttr('checked').attr('checked', 'checked');
+          checkGender = data.gender;
+          $('#postal').val(data.address.postal);
+          $('#subjects').val(renderSubjects(data.subjects));
+        } else {
+          loadError(data.error);
+        }
       })
       .fail((data) => {
-        console.log('error');
+        loadError(data.error);
       });
   }
 
@@ -145,13 +176,12 @@ $().ready(() => {
     const age = $('#age').val();
     const street = $('#street').val();
     const city = $('#city').val();
-    const gender = $('.form-check-input').val();
+    const gender = checkGender;
     const postal = $('#postal').val();
     const subjects = $('#subjects').val().split(',');
     //  control if the fields are empty
     if ((name && age && street && city && postal && gender && subjects) === '') {
-      console.log('meeeekkk');
-      return $('.modal-footer').empty().append(`<div class="alert alert-danger" role="alert">
+      $('.modal-footer').empty().append(`<div class="alert alert-danger" role="alert">
                       All field must be filled!
                     </div>`);
     } else {
@@ -169,36 +199,88 @@ $().ready(() => {
           }),
         })
         .done((data) => {
-          console.log(data.message);
-          $('.modal').modal('toggle');
-          loadFreshData(server);
+          if (!data.error) {
+            $('.modal').modal('toggle');
+            loadFreshData(server);
+          } else {
+            loadError(data.error);
+          }
+
         })
         .fail((data) => {
-          console.log(data.err);
+          loadError(data.error);
         });
     }
   }
 
-  // search one student by id
-  function findStudent() {
-    const studentId = $('#studentId').val();
-    $.ajax(`${server}/api/student/${studentId}`, {
+  // shows an ajax search with one or more data
+  function ajaxSearchData(toSearch, path) {
+    $.ajax(`${server}/api/${path}/${toSearch}`, {
         method: 'GET',
         contentType: 'application/json',
       })
       .done((data) => {
-        $('.table')
-          .empty()
-          .append(mkThead)
-          .append(mkTbody(data, 0));
+        if (!data.error) {
+          if (data.length === undefined) {
+            $table
+              .empty()
+              .append(mkThead)
+              .append(mkTbody(data, 0));
+          } else {
+            $table.empty().append(mkThead);
+            data.forEach((student, index) => {
+              $table.append(mkTbody(student, index));
+            });
+          }
+        } else {
+          loadError(data.error);
+        }
       })
       .fail((data) => {
-        console.log('error')
+        loadError(data.responseJSON.error);
       });
+  }
+
+  function editGender(gender) {
+    if (gender === 'male') {
+      $('#female').removeAttr('checked')
+      $('#male').attr('checked', 'checked');
+    } else if (gender === 'female') {
+      $('#male').removeAttr('checked')
+      $('#female').attr('checked', 'checked');
+    }
+    $('#gendersContainer .alert').remove();
+    $('#gendersContainer').append(`<div class="alert alert-dark" role="alert">
+                                        ${gender} Student.
+                                      </div>`);
+  }
+  // search one student by id
+  function findStudent() {
+    const seachData = $('#studentId').val();
+    $('#studentId').val('');
+    $searchStudent.hide('slow');
+    // check if is a number
+    const check = Number.isInteger(seachData / 1);
+    if (check) {
+      ajaxSearchData(seachData, 'searchNumbers');
+    } else if (seachData.length === 24) {
+      ajaxSearchData(seachData, 'student');
+    } else {
+      ajaxSearchData(seachData, 'searchText');
+    }
+
   }
   //Web start
   // load students list
   loadFreshData(server);
+  // keyup for search bar
+  $('#studentId').keyup(() => {
+    if ($('#studentId').val() === '') {
+      $searchStudent.hide('slow');
+    } else {
+      $searchStudent.show('slow');
+    }
+  });
   // click event with CONTROL FLOW
   $('body').click((event) => {
     event.preventDefault();
@@ -206,7 +288,12 @@ $().ready(() => {
     const clickId = target.getAttribute('id');
     if (clickId !== null) {
       const clickClass = target.getAttribute('class');
-      if (clickClass.match('editbtn')) {
+      if (clickClass.match('btn-outline-info')) {
+        ajaxSearchData(clickId, 'searchText');
+      } else if (clickClass.match('form-check-input')) {
+        checkGender = target.getAttribute('value');
+        editGender(checkGender);
+      } else if (clickClass.match('editbtn')) {
         mkModalBody('EDIT');
         fillModalEdit(clickId);
       } else if (clickClass.match('deletebtn')) {

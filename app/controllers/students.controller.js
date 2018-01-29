@@ -11,12 +11,13 @@ exports.findAll = (req, res) => {
 };
 
 exports.findOne = (req, res) => {
+  console.log('searching one student');
   if (!req.params) {
     return res.send('Field can not be empty');
   }
   Student.findById(req.params.studentId, (err, data) => {
     if (err) {
-      res.status(500).send({ error: 'some error occurred while retrieving the student' });
+      res.send({ error: 'some error occurred while retrieving the student' });
     } else {
       res.send(data);
     }
@@ -39,7 +40,7 @@ exports.create = (req, res) => {
       throw err;
     }
   });
-  res.send({ message:`Student ${newStudent.name} has been saved successfully`});
+  res.send({ message: `Student ${newStudent.name} has been saved successfully` });
 };
 
 exports.update = (req, res) => {
@@ -72,5 +73,31 @@ exports.delete = (req, res) => {
       }
     });
   });
-  res.json({ message:`student has been deleted successfully` });
+  res.json({ message: `student has been deleted successfully` });
 };
+
+exports.searchText = (req, res) => {
+  Student.find({ $or: [{ 'name': req.params.data }, { 'gender': req.params.data }, { 'subjects': req.params.data }] }, (err, student) => {
+    if (err) {
+      throw err;
+    }
+    if (student[0] !== undefined) {
+      res.json(student);
+    } else {
+      res.send({ error: 'What you search is not in the database' });
+    }
+  });
+}
+
+exports.searchNumbers = (req, res) => {
+  Student.find({ 'age': req.params.data }, (err, student) => {
+    if (err) {
+      throw err;
+    }
+    if (student[0] !== undefined) {
+      res.json(student);
+    } else {
+      res.send({ error: 'What you search is not in the database' });
+    }
+  });
+}
